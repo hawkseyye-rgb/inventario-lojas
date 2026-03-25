@@ -185,6 +185,9 @@ var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyM0VaUH-CxtT0WIh
       transition: color .15s;
     }
     .nav-btn .nav-icon { font-size: 22px; line-height: 1; }
+    .nav-btn .nav-icon img { width: 22px; height: 22px; filter: invert(1); opacity: 0.55; display: block; }
+    .nav-btn.ativo .nav-icon img { opacity: 1; }
+    .nav-btn.nav-sair .nav-icon img { filter: invert(1) sepia(1) saturate(5) hue-rotate(310deg); opacity: 0.85; }
     .nav-btn.ativo { color: var(--azul-claro); }
     .nav-btn.nav-sair { color: rgba(255,140,140,.85); }
     /* Resumo loja */
@@ -305,13 +308,13 @@ var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyM0VaUH-CxtT0WIh
 
   <nav id="bottom-nav">
     <button class="nav-btn ativo" id="nav-btn-inventario" onclick="mostrarTela('inventario')">
-      <span class="nav-icon">&#128247;</span>Inventario
+      <span class="nav-icon"><img src="Camera.png" alt=""></span>Inventario
     </button>
     <button class="nav-btn" id="nav-btn-resumo" onclick="mostrarTela('resumo')">
-      <span class="nav-icon">&#128202;</span>Resumo
+      <span class="nav-icon"><img src="Resumo.png" alt=""></span>Resumo
     </button>
     <button class="nav-btn nav-sair" onclick="fazerLogout()">
-      <span class="nav-icon">&#128682;</span>Sair
+      <span class="nav-icon"><img src="Sair.png" alt=""></span>Sair
     </button>
   </nav>
 </div>
@@ -444,15 +447,29 @@ function carregarResumo() {
       });
     });
 }
+function _formatarDataResumo(str) {
+  if (!str) return 'Sem identificação';
+  var meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  // tenta YYYY-MM-DD
+  var m = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return m[3] + '/' + meses[parseInt(m[2],10)-1] + '/' + m[1].slice(2);
+  // tenta DD/MM/YYYY ou DD/MM/YY
+  m = str.match(/^(\d{2})\/(\d{2})\/(\d{2,4})$/);
+  if (m) return m[1] + '/' + meses[parseInt(m[2],10)-1] + '/' + (m[3].length===4 ? m[3].slice(2) : m[3]);
+  return str;
+}
 function _renderResumoTabela(containerId, colNome, colTotal, dados) {
   var el = document.getElementById(containerId);
   if (!dados || !dados.length) {
     el.innerHTML = '<div class="resumo-vazio">Sem dados.</div>';
     return;
   }
+  var isDia = containerId === 'resumo-dia';
   var total = dados.reduce(function(s, r) { return s + r.total; }, 0);
   var rows = dados.map(function(r) {
-    return '<tr><td>' + _e(r.nome) + '</td><td>' + r.total + '</td></tr>';
+    var nome = (!r.nome || r.nome === 'N/A') ? 'Sem identificação' : r.nome;
+    if (isDia) nome = _formatarDataResumo(r.nome);
+    return '<tr><td>' + _e(nome) + '</td><td>' + r.total + '</td></tr>';
   }).join('');
   el.innerHTML = '<table class="resumo-tabela"><thead><tr><th>' + _e(colNome) + '</th><th>' + _e(colTotal) + '</th></tr></thead><tbody>' + rows + '</tbody><tfoot><tr style="background:var(--cinza-bg)"><td style="font-weight:700">Total</td><td style="text-align:right;font-weight:700;color:var(--azul)">' + total + '</td></tr></tfoot></table>';
 }
@@ -656,3 +673,4 @@ function _e(s) {
 </script>
 </body>
 </html>
+
