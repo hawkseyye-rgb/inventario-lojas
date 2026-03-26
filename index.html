@@ -289,7 +289,8 @@ var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyM0VaUH-CxtT0WIh
         placeholder="Aguardando leitura do coletor..."
         autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
         style="width:100%;background:#222;border:1.5px solid #2e2e2e;border-radius:8px;padding:12px 14px;font-size:16px;color:#f0f0f0;outline:none;box-sizing:border-box;-webkit-appearance:none;appearance:none;"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();processarColetor();}">
+        onkeydown="if(event.key==='Enter'||event.key==='Tab'){event.preventDefault();clearTimeout(window._coletorTimer);processarColetor();}"
+        oninput="clearTimeout(window._coletorTimer);window._coletorTimer=setTimeout(function(){if(document.getElementById('inp-coletor').value.length>3)processarColetor();},200);">
     </div>
     <div id="resumo-scanner" style="background:#1a1a1a;border:1px solid #2e2e2e;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
       <span style="color:#888;font-size:13px;letter-spacing:.3px;">Total bipado nesta sessao</span>
@@ -585,8 +586,15 @@ function iniciarLoop(video) {
 // ============================================================
 function extrairCodigo(raw) {
   try {
+    // Formato semicolon: 1;1;1;{codigo};...
     var p = raw.split(';');
-    if (p.length >= 4) { var c = decodeURIComponent(p[3]).trim(); if (c) return c; }
+    if (p.length >= 4) { var c = decodeURIComponent(p[3]).trim(); if (c && /^\d{1,6}$/.test(c)) return c; }
+    // Fallback: URL /produto-etiqueta/{codigo}/
+    var m = raw.match(/\/produto-etiqueta\/(\d{1,6})\//);
+    if (m) return m[1];
+    // Fallback: primeiro segmento numerico de 1-6 digitos apos separador
+    var m2 = raw.match(/(?:^|[;|,])(\d{1,6})(?:[;|,]|$)/);
+    if (m2) return m2[1];
   } catch(e) {}
   return raw.trim();
 }
