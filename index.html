@@ -499,6 +499,7 @@ function fazerLogout() {
 // SCANNER EM TEMPO REAL (funciona no iOS pois nao ha iframe)
 // ============================================================
 function iniciarScanner() {
+  _ensureAudio();
   if (estado.stream) return;
   navigator.mediaDevices.getUserMedia({
     video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
@@ -597,6 +598,7 @@ function processarResultado(rawValue) {
 // ENTRADA MANUAL
 // ============================================================
 function abrirManual() {
+  _ensureAudio();
   document.getElementById('overlay-manual').classList.add('ativo');
   setTimeout(function() { document.getElementById('inp-manual').focus(); }, 100);
 }
@@ -669,9 +671,16 @@ function atualizarContador() {
   document.getElementById('resumo-total').textContent   = estado.totalSessao;
 }
 function vibrar() { if (navigator.vibrate) navigator.vibrate(80); }
+var _audioCtx = null;
+function _ensureAudio() {
+  try {
+    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  } catch(e) {}
+}
 function _beepScan() {
   try {
-    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var ctx = _audioCtx; if (!ctx) return;
     var o = ctx.createOscillator(), g = ctx.createGain();
     o.connect(g); g.connect(ctx.destination);
     o.frequency.value = 1100;
@@ -682,7 +691,7 @@ function _beepScan() {
 }
 function _beepSucesso() {
   try {
-    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var ctx = _audioCtx; if (!ctx) return;
     [900, 1400].forEach(function(freq, i) {
       var o = ctx.createOscillator(), g = ctx.createGain();
       o.connect(g); g.connect(ctx.destination);
@@ -695,7 +704,7 @@ function _beepSucesso() {
 }
 function _beepErro() {
   try {
-    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var ctx = _audioCtx; if (!ctx) return;
     var o = ctx.createOscillator(), g = ctx.createGain();
     o.connect(g); g.connect(ctx.destination);
     o.type = 'sawtooth';
