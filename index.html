@@ -370,7 +370,7 @@ var estado = {
   loja: '', usuario: '', senha: '', processando: false,
   totalSessao: 0, historico: [], stream: null, scanLoop: null
 };
-var COOLDOWN_MS = 3000, ultimaLeitura = 0;
+var COOLDOWN_MS = 1500, ultimaLeitura = 0;
 
 // ============================================================
 // LOGIN
@@ -545,20 +545,20 @@ function iniciarLoop(video) {
       det.detect(video).then(function(r) {
         if (r.length > 0) processarResultado(r[0].rawValue);
       }).catch(function(){});
-    }, 350);
+    }, 200);
   } else {
     // jsQR via canvas — funciona em todos os navegadores incluindo Safari iOS
     var canvas = document.getElementById('canvas-jsqr'), ctx = canvas.getContext('2d');
     estado.scanLoop = setInterval(function() {
       if (estado.processando || !estado.stream || video.readyState < 2 || video.videoWidth === 0) return;
-      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0);
+      canvas.width = Math.round(video.videoWidth * 0.5); canvas.height = Math.round(video.videoHeight * 0.5);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       try {
         var img = ctx.getImageData(0, 0, canvas.width, canvas.height);
         var r   = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
         if (r && r.data) processarResultado(r.data);
       } catch(e) {}
-    }, 300);
+    }, 200);
   }
 }
 
