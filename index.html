@@ -583,8 +583,14 @@ function extrairFornecedor(raw) {
 function processarResultado(rawValue) {
   var agora = Date.now();
   if (agora - ultimaLeitura < COOLDOWN_MS || estado.processando) return;
-  ultimaLeitura = agora; vibrar();
-  registrar(extrairCodigo(rawValue), extrairFornecedor(rawValue));
+  ultimaLeitura = agora; vibrar(); _beepScan();
+  var codigo = extrairCodigo(rawValue);
+  if (!/^\d{1,6}$/.test(codigo)) {
+    _beepErro();
+    mostrarFeedback('erro', 'Codigo invalido. Apenas numeros ate 6 digitos sao aceitos.', codigo);
+    return;
+  }
+  registrar(codigo, extrairFornecedor(rawValue));
 }
 
 // ============================================================
@@ -614,9 +620,9 @@ function registrar(codigo, fornecedor) {
   apiGet({ action: 'registrar', loja: estado.loja, usuario: estado.usuario, senha: estado.senha, codigo: codigo, fornecedor: fornecedor || '' })
     .then(function(res) {
       estado.processando = false;
-      if (res.sucesso)        { adicionarHistorico(codigo, _hora(new Date()), fornecedor); mostrarFeedback('sucesso', res.mensagem, codigo); flashScanner(); }
-      else if (res.duplicado) { mostrarFeedback('duplicado', res.mensagem, codigo); }
-      else                    { mostrarFeedback('erro', res.mensagem || 'Erro ao registrar.', codigo); }
+      if (res.sucesso)        { _beepSucesso(); adicionarHistorico(codigo, _hora(new Date()), fornecedor); mostrarFeedback('sucesso', res.mensagem, codigo); flashScanner(); }
+      else if (res.duplicado) { _beepErro(); mostrarFeedback('duplicado', res.mensagem, codigo); }
+      else                    { _beepErro(); mostrarFeedback('erro', res.mensagem || 'Erro ao registrar.', codigo); }
     })
     .catch(function(err) {
       estado.processando = false;
@@ -663,6 +669,43 @@ function atualizarContador() {
   document.getElementById('resumo-total').textContent   = estado.totalSessao;
 }
 function vibrar() { if (navigator.vibrate) navigator.vibrate(80); }
+function _beepScan() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value = 1100;
+    g.gain.setValueAtTime(0.4, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+    o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.08);
+  } catch(e) {}
+}
+function _beepSucesso() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [900, 1400].forEach(function(freq, i) {
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.4, ctx.currentTime + i * 0.13);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.13 + 0.12);
+      o.start(ctx.currentTime + i * 0.13); o.stop(ctx.currentTime + i * 0.13 + 0.12);
+    });
+  } catch(e) {}
+}
+function _beepErro() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(380, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.45);
+    g.gain.setValueAtTime(0.6, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+    o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.45);
+  } catch(e) {}
+}
 function _hora(d) {
   var p = function(n) { return n < 10 ? '0' + n : n; };
   return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
@@ -673,5 +716,3 @@ function _e(s) {
 </script>
 </body>
 </html>
-
-
